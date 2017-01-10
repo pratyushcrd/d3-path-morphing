@@ -109,10 +109,20 @@ function createDataEl (data, type) {
 							isReverse = false;
 						setInterval(function () {
 							time = config.animTime;
-							d3.select(path)
+							type === 'd3' && d3.select(path)
 								.transition()
 								.duration(config.animTime)
 						        .attr('d', !isReverse && data.end.d || data.start.d);
+							type === 'plugin' && d3.select(path)
+								.transition()
+								.duration(config.animTime)
+						        .attrTween('d', function () {
+						        	if (isReverse) {
+						        		return d3.foo(data.start.d, data.end.d);
+						        	} else {
+						        		return d3.foo(data.end.d, data.start.d);
+						        	}
+						        });
 						    isReverse = !isReverse;
 						}, time);
 

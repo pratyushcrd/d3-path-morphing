@@ -1,3 +1,6 @@
-export default function() {
-  return 42;
+export default function () {
+  return function (pos) {
+	console.log(pos);
+	return '';
+  }
 };
