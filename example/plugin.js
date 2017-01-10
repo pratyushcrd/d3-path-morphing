@@ -10,6 +10,10 @@ var rootElId = 'comaprison',
 			plugin: 'Animation with plugin'
 		},
 		style: {
+			svg: {
+				height: '1000',
+				width: '1000'
+			},
 			text: {
 				container: 'col col-md-12 lead'
 			}
@@ -17,8 +21,37 @@ var rootElId = 'comaprison',
 		dataElClass: 'col col-md-3 col-lg-3',
 		baseElClass: 'row'
 	},
+	defaultStyle = {
+		'stroke': '#6094de',
+		'stroke-width': '3',
+		'fill': 'none'
+	},
 	i = 0,
-	ii = dataAr.length;
+	ii = dataAr.length,
+	setAttributes = function (el, ob) {
+		var key;
+		// return if not node element 
+		// or empty style object
+		if (!el || !el.setAttribute || !ob) {
+			return;
+		}
+		// apply attributes
+		for (key in ob) {
+			el.setAttribute(key, ob[key])
+		}
+	},
+	setStyles = function (el, ob) {
+		var key;
+		// return if not node element 
+		// or empty style object
+		if (!el || !el.style || !ob) {
+			return;
+		}
+		// apply style
+		for (key in ob) {
+			el.style[key] = ob[key];
+		}
+	};
 
 // Function to create View for each path data
 // depending whether its d3 or plugin's view
@@ -30,7 +63,15 @@ function createDataEl (data, type) {
 		ii = elNames.length,
 		item = '',
 		configureEl = function (el, elType) {
-			var functionOb = { // functions based on each type
+			var sizeAdjust = function (refEl, el, sizeOb) {
+					var refElSize = refEl.getBoundingClientRect(),
+					// getting ratio
+						x = refElSize.height / sizeOb.height,
+						y = refElSize.width / sizeOb.width;
+					console.log(x,y);
+					el.style.transform = 'scale(' + x + ',' + y + ')';
+				},
+				functionOb = { // functions based on each type
 					text: function () {
 						var textContainer = document.createElement('div'),
 							text = document.createTextNode(config.text[type]);
@@ -38,6 +79,38 @@ function createDataEl (data, type) {
 						textContainer.appendChild(text);
 						el.appendChild(textContainer);
 					},
+					start: function (isEnd) {
+						var svg = document.createElementNS(nameSpaceUri, 'svg'),
+							path = document.createElementNS(nameSpaceUri, 'path');
+						// Setting svg dimensions
+						svg.setAttribute('width', '100%');
+						svg.setAttribute('height', '100%');
+						// appending path to svg
+						svg.appendChild(path);
+						// setting initial style
+						setStyles(path, defaultStyle);
+						// setting custom styling
+						setStyles(path, data.style);
+						// setting actual path 'd'
+						setAttributes(path, data.start);
+						// if is endPath set Accordingly
+						isEnd && setAttributes(path, data.end);
+						// add svg to element
+						el.appendChild(svg);
+						return path;
+					},
+					end: function () {
+						this.start(true);
+					},
+					anim: function () {
+						var path = this.start();
+						d3.select(path)
+							.transition()
+							.delay(1000)
+							.duration(5000)
+					        .attr('d', data.end.d || '');
+
+					}
 				};
 			// Setting class for each element
 			el.setAttribute('class', config.dataElClass);
