@@ -1,0 +1,33 @@
+{
+  "name": "d3-path-morphing",
+  "version": "0.0.1",
+  "description": "d3 plugin for path morphing animation",
+  "keywords": [
+    "d3",
+    "d3-path",
+    "d3-path-morphing",
+    "d3-path-animation",
+    "path",
+    "morphing",
+    "animation"
+  ],
+  "license": "BSD-3-Clause",
+  "main": "build/d3-path-morphing.js",
+  "jsnext:main": "index",
+  "homepage": "https://github.com/pratyushcrd/d3-path-morphing",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/pratyushcrd/d3-path-morphing.git"
+  },
+  "scripts": {
+    "pretest": "rm -rf build && mkdir build && rollup -f umd -n d3 -o build/d3-path-morphing.js -- index.js",
+    "test": "tape 'test/**/*-test.js'",
+    "prepublish": "npm run test && uglifyjs build/d3-path-morphing.js -c -m -o build/d3-path-morphing.min.js",
+    "postpublish": "zip -j build/d3-path-morphing.zip -- LICENSE README.md build/d3-path-morphing.js build/d3-path-morphing.min.js"
+  },
+  "devDependencies": {
+    "rollup": "0.27",
+    "tape": "4",
+    "uglify-js": "2"
+  }
+}
