@@ -5,6 +5,7 @@ var rootElId = 'comaprison',
 	nameSpaceUri = 'http://www.w3.org/2000/svg',
 	// Base configuration object
 	config = {
+		animTime: 1500,
 		text: {
 			d3: 'Animation with d3',
 			plugin: 'Animation with plugin'
@@ -57,7 +58,7 @@ var rootElId = 'comaprison',
 // depending whether its d3 or plugin's view
 function createDataEl (data, type) {
 	var baseDataEl = document.createElement('div'),
-		elNames = ['text', 'start', 'end', 'anim'],
+		elNames = ['text', 'start', 'anim', 'end'],
 		containerOb = {},
 		i = 0,
 		ii = elNames.length,
@@ -103,12 +104,17 @@ function createDataEl (data, type) {
 						this.start(true);
 					},
 					anim: function () {
-						var path = this.start();
-						d3.select(path)
-							.transition()
-							.delay(1000)
-							.duration(5000)
-					        .attr('d', data.end.d || '');
+						var path = this.start(),
+							time = config.animTime * 1.5,
+							isReverse = false;
+						setInterval(function () {
+							time = config.animTime;
+							d3.select(path)
+								.transition()
+								.duration(config.animTime)
+						        .attr('d', !isReverse && data.end.d || data.start.d);
+						    isReverse = !isReverse;
+						}, time);
 
 					}
 				};
