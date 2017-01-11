@@ -24,7 +24,7 @@ var rootElId = 'comaprison',
 	},
 	defaultStyle = {
 		'stroke': '#6094de',
-		'stroke-width': '3',
+		'stroke-width': '2',
 		'fill': 'none'
 	},
 	i = 0,

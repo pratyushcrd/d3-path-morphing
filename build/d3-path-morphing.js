@@ -5,12 +5,559 @@
 }(this, function (exports) { 'use strict';
 
   function foo (path1, path2) {
-  	console.log(path2curve(path1, path2));
+  	var diff = getDiff(path1, path2),
+  		i = 0,
+  		ii = 0,
+  		now = [];
+  	path1 = diff[0];
+  	path2 = diff[1];
+  	diff = diff[2];
     return function (pos) {
-  	return '';
+    	now = [];
+      for (var i = 0, ii = path1.length; i < ii; i++) {
+          now[i] = [path1[i][0]];
+          var jj;
+          jj = path1[i] ? path1[i].length : 0;
+          for (var j = 1  ; j < jj; j++) {
+              now[i][j] = (+path1[i][j] + pos * diff[i][j]).toFixed(4);
+          }
+          now[i] = now[i].join(' ');
+      }
+      return now.join(' ');
     }
   };
 
+  function getDiff (p1, p2) {
+  	var toPath = [],
+  		fromPath = [],
+  		i = 0,
+  		ii = 0,
+  	    pathComb = path2curve(p1, p2),
+  	    diffPath;
+  	pathComb = pathNormalizer(pathComb[0], pathComb[1]);
+  	toPath = pathComb[1];
+  	fromPath = pathComb[0];
+  	diffPath = [];
+  	for (i = 0, ii = fromPath.length; i < ii; i++) {
+  	    diffPath[i] = [0];
+  	    var jj;
+  	    jj = fromPath[i] ? fromPath[i].length : 0;
+  	    for (var j = 1; j < jj; j++) {
+  	        diffPath[i][j] = (toPath[i][j] - fromPath[i][j]);
+  	    }
+  	}
+  	return [fromPath, toPath, diffPath]
+  }
+
+  function pathNormalizer(p1, p2) {
+      // Function to convert array to svg path (?) only for curves
+      var finalp1 = [],
+          finalp2 = [],
+          pathArr1 = toSvgPath(p1),
+          pathArr2 = toSvgPath(p2),
+          i = 0,
+          ii = 0,
+          temp,
+          createElementNS = document.createElementNS && document.createElementNS.bind(document),
+          dPath = createElementNS && createElementNS("http://www.w3.org/2000/svg", "path");
+
+      // If path invalid or svg not supported return
+      if (!pathArr1 || !pathArr2 || !dPath) {
+          return [p1, p2];
+      }
+      if (canFallback(p1, p2)) {
+          return [p1, p2];
+      }
+      // If any of the parameters is
+      // absent return to normal flow
+      if (!p1 || !p2) {
+          return [p1, p2];
+      }
+      // If svg not available return to normal flow
+      if (!document.createElementNS) {
+          return [p1, p2];
+      }
+      // Setting path again
+      pathArr1 = toSvgPath(p1);
+      pathArr2 = toSvgPath(p2);
+      if(pathArr1.join().indexOf('undefined') !== -1) {
+          return [p1, p2];
+      }
+      if(pathArr2.join().indexOf('undefined') !== -1) {
+          return [p1, p2];
+      }
+      // If svg functions not available return to normal flow
+      if (!dPath.getTotalLength || !dPath.getPointAtLength) {
+          return [p1, p2];
+      }
+
+      function canFallback (path1, path2) {
+          var str1 = '',
+              str2 = '',
+              testLen,
+              testPoint;
+          // Checking path totoalLength is accurate or not
+          // testing with a known path
+          // this check is for Firefox
+          dPath.setAttribute('d', 'M300 10 L300 300 C50 310,50 640,350 650' +
+              'C600 640,600 310,400 300 L400 10 L295 10');
+          testLen = dPath.getTotalLength();
+          testPoint = dPath.getPointAtLength(10);
+          if (testLen < 1829.1 || testLen > 1829.2) {
+              return true;
+          }
+          if (Math.round(testPoint.x) !== 300 || Math.round(testPoint.y) !== 20) {
+              return true;
+          }
+          // path1 and path2 are in array
+          function trimPathArray (arr) {
+              var i = arr.length;
+              while (i--) {
+                  if (arr[i].join('') === arr[i - 1].join('')) {
+                      arr.pop();
+                  } else {
+                      break;
+                  }
+              }
+          }
+          function getPathFromArray(arr) {
+              var str = '',
+                  i = 0,
+                  ii = arr.length;
+              for (; i < ii; ++i) {
+                  str += arr[i].join(' ');
+              }
+              return str;
+          }
+          trimPathArray(path1);
+          trimPathArray(path2);
+          str1 = getPathFromArray(path1);
+          str2 = getPathFromArray(path2);
+          if (str1.split(/[Mm]/).length > 2 || str2.split(/[Mm]/).length > 2) {
+              return false;
+          }
+          if (path1.length === path2.length) {
+              return true;
+          }
+          return false;
+      }
+
+      function toSvgPath(arr) {
+          var str = [],
+              i = 0,
+              ii = arr.length,
+              item = [];
+          if (typeof arr === 'string') {
+              return arr;
+          }
+          // Converting the array to string; path type
+          for (i = 0; i < ii; ++i) {
+              if (!arr[i].join){
+                  return;
+              } else {
+                  // Removing continuous Move commands
+                  // Picking up the last one
+                  if ( !i || !arr[i + 1] || arr[i + 1][0] !== 'M' || arr[i][0] !== 'M'){
+                      str.push(arr[i].join(' '));
+                  }
+              }
+          }
+          str = str.join('');
+          str = str.split(/[Mm]/).slice(1);
+          for (i = 0, ii = str.length; i < ii; ++i) {
+              str[i] = 'M' + str[i];
+          }
+          return str;
+      }
+
+      ii = Math.max(pathArr1.length, pathArr2.length);
+      for (i = 0; i < ii; ++i) {
+          temp = _pathNormalizer(pathArr1[i], pathArr2[i]);
+          pathArr1[i] = temp[0];
+          pathArr2[i] = temp[1];
+      }
+
+      function linetopath (arr) {
+          var i = 0,
+              ii = 0,
+              str = [];
+          arr = arr || [];
+          ii = arr.length;
+          for (i = 0; i < ii; ++i) {
+              if (arr[i].length - 1) {
+                  str.push(arr[i].join(' '));
+              }
+          }
+          return str.join('');
+      }
+
+      function removeBlanks (arr) {
+          var i = arr.length,
+              j = 0,
+              path;
+          while (i-- - 1) {
+              // Pop if length is zero
+              if (arr[i].toString() === arr[i - 1].toString()) {
+                  arr.pop();
+              }
+          }
+      }
+
+      function _divide(arr, times) {
+          var resArr = [],
+              locArr = [],
+              arrLen = arr.length,
+              i = 0,
+              ii = 0,
+              x = 0,
+              prevPos = 0,
+              y = 0,
+              diffTimes = times - arrLen; // If array size is smaller than
+                                          // divisions needed
+          while (diffTimes >= 0) {
+              i = arr.length - 1;
+              arr.push(arr.slice(i));
+              --diffTimes;
+          }
+          arrLen = arr.length;
+          for (i = 0; i <= times; ++i) {
+              locArr.push(Math.round((i / times) * arrLen));
+          }
+          for (i = 0, ii = locArr.length - 1; i < ii; ++i) {
+              resArr.push(arr.slice(locArr[i], locArr[i + 1]));
+              if (resArr[i][0][0] !== 'M' && resArr[i][0][0] !== 'm') {
+                  prevPos = resArr[i - 1].length - 1;
+                  x = resArr[i - 1][prevPos][1];
+                  y = resArr[i - 1][prevPos][2];
+                  resArr[i].unshift(['M', x, y]);
+              }
+          }
+          return resArr;
+      }
+
+      function divideArray (diff) {
+          var arrToDivide = [],
+              countArr = [],
+              transArr = [],
+              i = 0,
+              ii = 0,
+              isArr1 = true;
+          if (diff === 0) {
+              return;
+          } else if (diff > 0) {
+              arrToDivide = pathArr2;
+              isArr1 = false;
+          } else {
+              diff = -diff;
+              arrToDivide = pathArr1;
+          }
+          for (i = 0, ii = arrToDivide.length; i < ii; ++i) {
+              countArr.push(1);
+          }
+          while (diff--) {
+              --i;
+              if (i < 0) {
+                  i = ii - 1;
+              }
+              countArr[i]++;
+          }
+
+          for (i = 0; i < ii; ++i){
+              if (countArr[i] === 1) {
+                  transArr.push(arrToDivide[i]);
+              } else {
+                  transArr.push.apply(transArr, _divide(arrToDivide[i], countArr[i]));
+              }
+          }
+          if (isArr1) {
+              pathArr1 = transArr;
+          } else {
+              pathArr2 = transArr;
+          }
+      }
+      /*
+
+      */
+      removeBlanks(pathArr1);
+      removeBlanks(pathArr2);
+      divideArray(pathArr1.length - pathArr2.length);
+
+      ii = Math.max(pathArr1.length, pathArr2.length);
+      for (i = 0; i < ii; ++i) {
+          temp = _pathNormalizer(linetopath(pathArr1[i]), linetopath(pathArr2[i]));
+          pathArr1[i] = temp[0];
+          pathArr2[i] = temp[1];
+      }
+
+      for (i = 0, ii = pathArr1.length; i < ii; ++i) {
+          finalp1 = finalp1.concat(pathArr1[i]);
+      }
+      for (i = 0, ii = pathArr2.length; i < ii; ++i) {
+          finalp2 = finalp2.concat(pathArr2[i]);
+      }
+      return [finalp1, finalp2];
+  }
+  // A function to calculate common path
+  // in two given paths
+  function commonPathCalculator (p1, p2) {
+      var i = 0,
+          j = 0,
+          ii = 0,
+          jj = 0,
+          k = 0,
+          kk = 0,
+          uncommon1 = 0,
+          uncommon2 = 0,
+          lim1 = 0,
+          lim2 = 0,
+          map1 = {},
+          map2 = {},
+          groupedPath1 = [],
+          groupedPath2 = [],
+          gpIndex1 = -1,
+          gpIndex2 = -1,
+          isSame = true,
+          nearestPoint1,
+          nearestPoint2;
+      // Splitting the string commands to get
+      // particular points later
+      // Will be required while breaking paths
+      // into common and uncommon parts
+      function splitter (path) {
+          var i = 0,
+              ii = 0;
+          path = path.split(/[MCLmcl]/).slice(1);
+          for (i = 0, ii = path.length; i < ii; ++i) {
+              path[i] = path[i].split(' ').slice(1);
+              i || path[i].unshift('M');
+              if (i) {
+                  path[i].length === 2 && path[i].unshift('L') || path[i].unshift('C');
+              }
+          }
+          return path;
+      }
+      // populate the arr to object in reverse manner
+      // i.e value to key mapping
+      function mapper (arr, ob) {
+          var i = 0,
+              ii = arr.length,
+              val,
+              item;
+          for (i = 0, ii = arr.length; i < ii; ++i) {
+              val = arr[i].join(' ');
+              item = arr[i];
+              if (item[0] === 'C' && item[3] === item[5] && item[4] === item[6]) {
+                  arr[i].stringValue = ['L', item[3], item[4]].join(' ');
+              } else
+              item.stringValue = val;
+              // Creating an array if undefined
+              // pushing otherwise
+              ob[item.stringValue] && ob[item.stringValue].push(i);
+              ob[item.stringValue] || (ob[item.stringValue] = [i]);
+          }
+      }
+      // Function to get nearest point that exist
+      // in the other array
+      function getNearestExistingPoint (arr, map, start, ii, lim) {
+          var i = start,
+              k = 0,
+              kk = 0,
+              item;
+          for (; i < ii; ++i) {
+              item = map[arr[i].stringValue];
+              if (item) {
+                  for (k = 0, kk = item.length; k < kk; ++k) {
+                      if (item[k] >= lim) {
+                          return {
+                              index : i,
+                              mapValue : item[k],
+                              diff : i - start
+                          };
+                      }
+                  }
+              }
+          }
+          return -1;
+      }
+      // function to get last coordinate for CurveTo command
+      function getCoordinateAsMove (arr) {
+          var last = arr.length - 1;
+          return ['M', arr[last - 1], arr[last]].join(' ');
+      }
+      // function to conver path array to string
+      function pathToString (arr) {
+          return arr.join('');
+      }
+      // commonPathCalculator flow here
+      p1 = splitter(p1);
+      p2 = splitter(p2);
+      mapper(p1, map1);
+      mapper(p2, map2);
+      // Setting length
+      ii = p1.length;
+      jj = p2.length;
+      i = 0;
+      j = 0;
+      // Making partitions for common
+      // and uncommon parts
+      // Checking if first is common or uncommon
+      while (i < ii && j < jj) {
+          ++gpIndex1;
+          ++gpIndex2;
+          // initializing blank arrays
+          groupedPath1[gpIndex1] = [];
+          groupedPath2[gpIndex2] = [];
+          isSame = (p1[i].stringValue === p2[j].stringValue);
+          if (i) {
+              // Logic to push prev coordinate as move command
+              groupedPath1[gpIndex1].push(getCoordinateAsMove(p1[i - 1]));
+              groupedPath2[gpIndex2].push(getCoordinateAsMove(p2[j - 1]));
+          }
+          if (isSame) {
+              while (i < ii && j < jj && p1[i].stringValue === p2[j].stringValue) {
+                  groupedPath1[gpIndex1].push(p1[i].stringValue);
+                  groupedPath2[gpIndex2].push(p2[j].stringValue);
+                  ++i;
+                  ++j;
+              }
+          } else {
+              nearestPoint1 = getNearestExistingPoint(p1, map2, i, ii, j);
+              nearestPoint2 = getNearestExistingPoint(p2, map1, j, jj, i);
+              // Assuming nearestPoint1 is nearer than nearestPoint2
+              lim1 = nearestPoint1.index;
+              lim2 = nearestPoint1.mapValue;
+              // If nearestPoint2 is nearer
+              if (!~nearestPoint1 || nearestPoint1.diff > nearestPoint2.diff) {
+                  lim1 = nearestPoint2.mapValue;
+                  lim2 = nearestPoint2.index;
+              }
+              if (!~nearestPoint1 && !~nearestPoint2) {
+                 // If both not found include all as uncommon
+                  lim1 = ii - 1;
+                  lim2 = jj - 1;
+              }
+              // Pushing uncommon paths
+              while (i <= lim1) {
+                  groupedPath1[gpIndex1].push(p1[i].stringValue);
+                  ++i;
+              }
+              while (j <= lim2) {
+                  groupedPath2[gpIndex2].push(p2[j].stringValue);
+                  ++j;
+              }
+          }
+          groupedPath1[gpIndex1] = pathToString(groupedPath1[gpIndex1]);
+          groupedPath2[gpIndex2] = pathToString(groupedPath2[gpIndex2]);
+      }
+      // If Any one is left add them all
+      if (i < ii) {
+          ++gpIndex1;
+          groupedPath1[gpIndex1] = [];
+          groupedPath1[gpIndex1].push(getCoordinateAsMove(p1[i - 1]));
+          ++gpIndex2;
+          groupedPath2[gpIndex2] = [];
+          groupedPath2[gpIndex2].push(getCoordinateAsMove(p2[j - 1]));
+          while(i < ii) {
+              groupedPath1[gpIndex1].push(p1[i].stringValue);
+              ++i;
+          }
+          groupedPath1[gpIndex1] = pathToString(groupedPath1[gpIndex1]);
+      }
+      if (j < jj) {
+          ++gpIndex1;
+          groupedPath1[gpIndex1] = [];
+          groupedPath1[gpIndex1].push(getCoordinateAsMove(p1[i - 1]));
+          ++gpIndex2;
+          groupedPath2[gpIndex2] = [];
+          groupedPath2[gpIndex2].push(getCoordinateAsMove(p2[j - 1]));
+          while(j < jj) {
+              groupedPath2[gpIndex2].push(p2[j].stringValue);
+              ++j;
+          }
+          groupedPath2[gpIndex2] = pathToString(groupedPath2[gpIndex2]);
+      }
+      return [groupedPath1, groupedPath2];
+  }
+
+  // function to get equal points for two different path
+  function _pathNormalizer(p1, p2) {
+      var i = 0,
+          j = 0,
+          ii = 0,
+          jj = 0,
+          item = {},
+          fPath1 = [],
+          fPath2 = [],
+          divisions = 0,
+          commonPath,
+          tmp;
+      // Uncommon path normalizer
+      function normalizeUncommonPaths (p1, p2) {
+          var dPath1,
+              dPath2,
+              i = 0,
+              j = 0,
+              item = {},
+              pathLen1 = 0,
+              pathLen2 = 0,
+              fPath1 = [],
+              fPath2 = [],
+              divisions = 0,
+              round = Math.round;
+          // Creating path elements to use functions 'getTotalLength'
+          // and 'getPointAtLength'
+          dPath1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          dPath1.setAttribute("d", p1);
+
+          dPath2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+          dPath2.setAttribute("d", p2);
+
+          // Getting length of the paths
+          pathLen1 = dPath1.getTotalLength();
+          pathLen2 = dPath2.getTotalLength();
+
+          // Number of divisions will depend on larger path
+          divisions = 0.15 * Math.max(pathLen1, pathLen2);
+          divisions = Math.ceil(divisions);
+
+          if (!divisions || !isFinite(divisions) || divisions < 10) {
+              divisions = 10;
+          }
+
+          for (i = 0; i <= divisions; ++i) {
+              item = dPath1.getPointAtLength((i / divisions) * pathLen1);
+              fPath1.push([i ? "L" : "M",
+                  round(item.x),
+                  round(item.y)
+              ]);
+              item = dPath2.getPointAtLength((i / divisions) * pathLen2);
+              fPath2.push([i ? "L" : "M",
+                  round(item.x),
+                  round(item.y)
+              ]);
+          }
+          return [fPath1, fPath2];
+      }
+      if (!p1 || p1 === 'M  ') {
+          p1 = p2.split(' ').slice(0, 3).join(' ').replace('L', '');
+      }
+      if (!p2 || p2 === 'M  ') {
+          p2 = p1.split(' ').slice(0, 3).join(' ').replace('L', '');
+      }
+      commonPath = commonPathCalculator(p1, p2);
+
+      for (i = 0, ii = commonPath[0].length; i < ii; ++i) {
+          tmp = normalizeUncommonPaths(commonPath[0][i], commonPath[1][i]);
+          if (i) {
+              fPath1 = fPath1.concat(tmp[0].slice(1));
+              fPath2 = fPath2.concat(tmp[1].slice(1));
+          } else {
+              fPath1 = fPath1.concat(tmp[0]);
+              fPath2 = fPath2.concat(tmp[1]);
+          }
+      }
+      return [fPath1, fPath2];
+  }
   // Convert path string to array
   function path2array (str) {
   	var arr = str.split(/(?=[LMC])/),

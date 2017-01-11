@@ -1,9 +1,47 @@
 export default function (path1, path2) {
-	console.log(path2curve(path1, path2));
+	var diff = getDiff(path1, path2),
+		i = 0,
+		ii = 0,
+		now = [];
+	path1 = diff[0];
+	path2 = diff[1];
+	diff = diff[2];
   return function (pos) {
-	return '';
+  	now = [];
+    for (var i = 0, ii = path1.length; i < ii; i++) {
+        now[i] = [path1[i][0]];
+        var jj;
+        jj = path1[i] ? path1[i].length : 0;
+        for (var j = 1  ; j < jj; j++) {
+            now[i][j] = (+path1[i][j] + pos * diff[i][j]).toFixed(4);
+        }
+        now[i] = now[i].join(' ');
+    }
+    return now.join(' ');
   }
 };
+
+function getDiff (p1, p2) {
+	var toPath = [],
+		fromPath = [],
+		i = 0,
+		ii = 0,
+	    pathComb = path2curve(p1, p2),
+	    diffPath;
+	pathComb = pathNormalizer(pathComb[0], pathComb[1]);
+	toPath = pathComb[1];
+	fromPath = pathComb[0];
+	diffPath = [];
+	for (i = 0, ii = fromPath.length; i < ii; i++) {
+	    diffPath[i] = [0];
+	    var jj;
+	    jj = fromPath[i] ? fromPath[i].length : 0;
+	    for (var j = 1; j < jj; j++) {
+	        diffPath[i][j] = (toPath[i][j] - fromPath[i][j]);
+	    }
+	}
+	return [fromPath, toPath, diffPath]
+}
 
 function pathNormalizer(p1, p2) {
     // Function to convert array to svg path (?) only for curves
@@ -270,9 +308,11 @@ function commonPathCalculator (p1, p2) {
         map2 = {},
         groupedPath1 = [],
         groupedPath2 = [],
-        gpIndex1 = -1
+        gpIndex1 = -1,
         gpIndex2 = -1,
-        isSame = true;
+        isSame = true,
+        nearestPoint1,
+        nearestPoint2;
     // Splitting the string commands to get
     // particular points later
     // Will be required while breaking paths
