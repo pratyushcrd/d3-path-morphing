@@ -4,8 +4,10 @@
   (factory((global.d3 = global.d3 || {})));
 }(this, function (exports) { 'use strict';
 
-  function foo (path1, path2) {
-  	var diff = getDiff(path1, path2),
+  function foo (p1, p2) {
+  	var path1 = p1,
+  		path2 = p2,
+  		diff = getDiff(path1, path2),
   		i = 0,
   		ii = 0,
   		now = [];
