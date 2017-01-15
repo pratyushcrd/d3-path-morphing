@@ -84,8 +84,8 @@ function createDataEl (data, type) {
 						var svg = document.createElementNS(nameSpaceUri, 'svg'),
 							path = document.createElementNS(nameSpaceUri, 'path');
 						// Setting svg dimensions
-						svg.setAttribute('width', '1000px');
-						svg.setAttribute('height', '1000px');
+						svg.setAttribute('width', config.style.svg.width);
+						svg.setAttribute('height', config.style.svg.height);
 						// appending path to svg
 						svg.appendChild(path);
 						// setting initial style
