@@ -2,7 +2,7 @@
 
 ## Installing
 
-Download the [latest release](https://github.com/pratyushcrd/d3/d3-path-morphing/build/d3-path-morphing.js).
+Download the [latest release](https://github.com/pratyushcrd/d3-path-morphing/releases/latest).
 
 ## Demo
 [Here](https://pratyushcrd.github.io/d3-path-morphing/)
