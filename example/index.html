@@ -12,20 +12,7 @@
     <title>d3-path-morphing</title>
 
     <!-- Bootstrap core CSS -->
-    <link href="dist/css/bootstrap.min.css" rel="stylesheet">
-
-    <!-- Custom styles for this template -->
-    <link href="dist/css/sticky-footer-navbar.css" rel="stylesheet">
-    <style>
-      body{
-        background: #222222;
-        color: #bcbcbc;
-      }
-      footer{
-        background: #222222;
-        color: #bcbcbc;
-      }
-    </style>
+    <link href="https://bootswatch.com/superhero/bootstrap.min.css" rel="stylesheet">
   </head>
 
   <body>
@@ -36,13 +23,31 @@
         <h1>d3-path-morphing Plugin</h1>
       </div>
         <p class="lead">d3 pluging for better path morphing animations</p>
+        
+        <blockquote>
+          <p>Usage</p>
+          <small><pre><code>
+d3.select('myPath')
+.transition()
+.duration(1000)
+.attrTween('d', function () {
+    var startPath = d3.select('#path1').attr('d'),
+      endPath = d3.select('#path2').attr('d');
+    return d3.morphPath(startPath, endPath);
+});
+          </code></pre>
+          </small>
+        </blockquote>
+
+
+        <hr class="col-md-12"/>
         <div id="comaprison" class="row col col-md-12"></div>
       </div>
 
 
     <footer class="footer">
       <div class="container">
-        <p class="text-muted">Place sticky footer content here.</p>
+        <p class="text-muted"><a href="https://github.com/pratyushcrd">@pratyushcrd</a></p>
       </div>
     </footer>
 
