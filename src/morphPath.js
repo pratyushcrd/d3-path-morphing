@@ -585,8 +585,8 @@ function path2array (str) {
 }
 
 function path2curve(path, path2) {
-    var p = path2array(path),
-    p2 = path2array(path2),
+    var p = pathToAbsolute(path),
+    p2 = pathToAbsolute(path2),
     mmax = Math.max,
     concat = 'concat',
     attrs = {
@@ -700,7 +700,146 @@ function path2curve(path, path2) {
     }
     return [p, p2];
 }
+function pathToAbsolute (pathArray) {
+    var res,
+    pathArray = parsePathString(pathArray),
+    concat = 'concat';
+    if (!pathArray || !pathArray.length) {
+        res = [["M", 0, 0]];
+        return res;
+    }
+    var x = 0,
+        y = 0,
+        mx = 0,
+        my = 0,
+        start = 0;
+    res = [];
+    if (pathArray[0][0] == "M") {
+        x = +pathArray[0][1];
+        y = +pathArray[0][2];
+        mx = x;
+        my = y;
+        start++;
+        res[0] = ["M", x, y];
+    }
+    var crz = pathArray.length == 3 && pathArray[0][0] == "M" && pathArray[1][0].toUpperCase() == "R" && pathArray[2][0].toUpperCase() == "Z";
+    for (var r, pa, i = start, ii = pathArray.length; i < ii; i++) {
+        res.push(r = []);
+        pa = pathArray[i];
+        if (pa[0] != String.prototype.toUpperCase.call(pa[0])) {
+            r[0] = String.prototype.toUpperCase.call(pa[0]);
+            switch (r[0]) {
+                case "A":
+                    r[1] = pa[1];
+                    r[2] = pa[2];
+                    r[3] = pa[3];
+                    r[4] = pa[4];
+                    r[5] = pa[5];
+                    r[6] = +(pa[6] + x);
+                    r[7] = +(pa[7] + y);
+                    break;
+                case "V":
+                    r[1] = +pa[1] + y;
+                    break;
+                case "H":
+                    r[1] = +pa[1] + x;
+                    break;
+                case "R":
+                    var dots = [x, y][concat](pa.slice(1));
+                    for (var j = 2, jj = dots.length; j < jj; j++) {
+                        dots[j] = +dots[j] + x;
+                        dots[++j] = +dots[j] + y;
+                    }
+                    res.pop();
+                    res = res[concat](catmullRom2bezier(dots, crz));
+                    break;
+                case "M":
+                    mx = +pa[1] + x;
+                    my = +pa[2] + y;
+                default:
+                    for (j = 1, jj = pa.length; j < jj; j++) {
+                        r[j] = +pa[j] + ((j % 2) ? x : y);
+                    }
+            }
+        } else if (pa[0] == "R") {
+            dots = [x, y][concat](pa.slice(1));
+            res.pop();
+            res = res[concat](catmullRom2bezier(dots, crz));
+            r = ["R"][concat](pa.slice(-2));
+        } else {
+            for (var k = 0, kk = pa.length; k < kk; k++) {
+                r[k] = pa[k];
+            }
+        }
+        switch (r[0]) {
+            case "Z":
+                x = mx;
+                y = my;
+                break;
+            case "H":
+                x = r[1];
+                break;
+            case "V":
+                y = r[1];
+                break;
+            case "M":
+                mx = r[r.length - 2];
+                my = r[r.length - 1];
+            default:
+                x = r[r.length - 2];
+                y = r[r.length - 1];
+        }
+    }
+    return res;
+}
+function parsePathString (pathString) {
+    var pathCommand = /([achlmrqstvz])[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029,]*((-?\d*\.?\d*(?:e[\-+]?\d+)?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*)+)/ig,
+        pathValues = /(-?\d*\.?\d*(?:e[\-+]?\d+)?)[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*,?[\x09\x0a\x0b\x0c\x0d\x20\xa0\u1680\u180e\u2000\u2001\u2002\u2003\u2004\u2005\u2006\u2007\u2008\u2009\u200a\u202f\u205f\u3000\u2028\u2029]*/ig,
+        concat = 'concat';
+        
+    if (!pathString) {
+        return null;
+    }
 
+    var paramCounts = {
+        a: 7,
+        c: 6,
+        h: 1,
+        l: 2,
+        m: 2,
+        r: 4,
+        q: 4,
+        s: 4,
+        t: 2,
+        v: 1,
+        z: 0
+    },
+    data = [];
+    if (!data.length) {
+        String(pathString).replace(pathCommand, function(a, b, c) {
+            var params = [],
+            name = b.toLowerCase();
+            c.replace(pathValues, function(a, b) {
+                b && params.push(+b);
+            });
+            if (name == "m" && params.length > 2) {
+                data.push([b][concat](params.splice(0, 2)));
+                name = "l";
+                b = b == "m" ? "l" : "L";
+            }
+            if (name == "r") {
+                data.push([b][concat](params));
+            } else
+                while (params.length >= paramCounts[name]) {
+                    data.push([b][concat](params.splice(0, paramCounts[name])));
+                    if (!paramCounts[name]) {
+                        break;
+                    }
+                }
+        });
+    }
+    return data;
+};
 function l2c(x1, y1, x2, y2) {
     return [x1, y1, x2, y2, x2, y2];
 }

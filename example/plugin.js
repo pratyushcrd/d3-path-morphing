@@ -19,7 +19,7 @@ var rootElId = 'comaprison',
 				container: 'col col-md-12 lead'
 			}
 		},
-		dataElClass: 'col col-md-3 col-lg-3',
+		dataElClass: 'data-el col col-md-3 col-lg-3',
 		baseElClass: 'row'
 	},
 	defaultStyle = {
@@ -84,8 +84,8 @@ function createDataEl (data, type) {
 						var svg = document.createElementNS(nameSpaceUri, 'svg'),
 							path = document.createElementNS(nameSpaceUri, 'path');
 						// Setting svg dimensions
-						svg.setAttribute('width', '100%');
-						svg.setAttribute('height', '100%');
+						svg.setAttribute('width', '1000px');
+						svg.setAttribute('height', '1000px');
 						// appending path to svg
 						svg.appendChild(path);
 						// setting initial style
