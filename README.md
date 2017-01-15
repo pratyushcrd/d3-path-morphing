@@ -2,12 +2,15 @@
 
 ## Installing
 
-If you use NPM, `npm install d3-path-morphing`. Otherwise, download the [latest release](https://github.com/pratyushcrd/d3/d3-path-morphing/releases/latest).
+Download the [latest release](https://github.com/pratyushcrd/d3/d3-path-morphing/build/d3-path-morphing.js).
 
 ## API Reference
 
-YOUR API DOCUMENTATION HERE. Use bold for symbols (such as constructor and method names) and italics for instances. See the other D3 modules for examples.
-
-<a href="#path-morphing" name="path-morphing">#</a> <b>path-morphing</b>()
-
-Computes the answer to the ultimate question of life, the universe, and everything.
+d3.select('myPath')
+.transition()
+.duration(1000)
+.attrTween('d', function () {
+    var startPath = d3.select('#path1').attr('d'),
+      endPath = d3.select('#path2').attr('d');
+    return d3.morphPath(startPath, endPath);
+});

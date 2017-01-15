@@ -118,9 +118,9 @@ function createDataEl (data, type) {
 								.duration(config.animTime)
 						        .attrTween('d', function () {
 						        	if (isReverse) {
-						        		return d3.foo(data.start.d, data.end.d);
+						        		return d3.morphPath(data.start.d, data.end.d);
 						        	} else {
-						        		return d3.foo(data.end.d, data.start.d);
+						        		return d3.morphPath(data.end.d, data.start.d);
 						        	}
 						        });
 						    isReverse = !isReverse;

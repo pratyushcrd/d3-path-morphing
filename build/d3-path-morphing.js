@@ -4,7 +4,7 @@
   (factory((global.d3 = global.d3 || {})));
 }(this, function (exports) { 'use strict';
 
-  function foo (p1, p2) {
+  function morphPath (p1, p2) {
   	var path1 = p1,
   		path2 = p2,
   		diff = getDiff(path1, path2),
@@ -723,7 +723,7 @@
       ];
   }
 
-  exports.foo = foo;
+  exports.morphPath = morphPath;
 
   Object.defineProperty(exports, '__esModule', { value: true });
 
