@@ -150,6 +150,6 @@ function createDataEl (data, type) {
 
 // Calling createDataEl for every data item
 for (i = 0; i < ii; ++i) {
-	rootEl.appendChild(createDataEl(dataAr[i], 'd3'));
+	// rootEl.appendChild(createDataEl(dataAr[i], 'd3'));
 	rootEl.appendChild(createDataEl(dataAr[i], 'plugin'));
 }

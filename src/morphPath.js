@@ -1,7 +1,8 @@
 var pathCommand = /([a-z])[\s,]*((-?\d*\.?\d*(?:e[\-+]?\d+)?[\s]*,?[\s]*)+)/ig,
     pathValues = /(-?\d*\.?\d*(?:e[\-+]?\d+)?)[\s]*,?[\s]*/ig,
     mmax = Math.max,
-    toFloat = parseFloat;
+    toFloat = parseFloat,
+    globalConfig = {};
 
 export default function (p1, p2) {
 	var path1 = p1,
@@ -31,6 +32,8 @@ export default function (p1, p2) {
   }
 };
 
+// Functions from Snap svg to convert
+// path string to array
 function getDiff (p1, p2) {
 	var toPath = [],
 		fromPath = [],
@@ -38,7 +41,7 @@ function getDiff (p1, p2) {
 		ii = 0,
 	    pathComb = path2curve(p1, p2),
 	    diffPath;
-	//pathComb = pathNormalizer(pathComb[0], pathComb[1]);
+	pathComb = morphPath(pathComb[0], pathComb[1]);
 	toPath = pathComb[1];
 	fromPath = pathComb[0];
 	diffPath = [];
@@ -53,7 +56,7 @@ function getDiff (p1, p2) {
 	return [fromPath, toPath, diffPath]
 }
 function path2curve(path, path2) {
-    var pth = !path2 && paths(path);
+    var pth = !path2 && paths(path), arr;
     var p = pathToAbsolute(path),
         p2 = path2 && pathToAbsolute(path2),
         attrs = {x: 0, y: 0, bx: 0, by: 0, X: 0, Y: 0, qx: null, qy: null},
@@ -61,7 +64,9 @@ function path2curve(path, path2) {
         processPath = function (path, d, pcom) {
             var nx, ny;
             if (!path) {
-                return ["C", d.x, d.y, d.x, d.y, d.x, d.y];
+                arr = ["C", d.x, d.y, d.x, d.y, d.x, d.y];
+                arr.lValue = ['L', d.x, d.y];
+                return arr;
             }
             !(path[0] in {T: 1, Q: 1}) && (d.qx = d.qy = null);
             switch (path[0]) {
@@ -101,15 +106,19 @@ function path2curve(path, path2) {
                     break;
                 case "L":
                     path = ["C"].concat(l2c(d.x, d.y, path[1], path[2]));
+                    path.lValue = ['L'].concat(path.slice(5));
                     break;
                 case "H":
                     path = ["C"].concat(l2c(d.x, d.y, path[1], d.y));
+                    path.lValue = ['L'].concat(path.slice(5));
                     break;
                 case "V":
                     path = ["C"].concat(l2c(d.x, d.y, d.x, path[1]));
+                    path.lValue = ['L'].concat(path.slice(5));
                     break;
                 case "Z":
                     path = ["C"].concat(l2c(d.x, d.y, d.X, d.Y));
+                    path.lValue = ['L'].concat(path.slice(5));
                     break;
             }
             return path;
@@ -461,4 +470,115 @@ function is(o, type) {
             type == "object" && o === Object(o) ||
             // objectToString.call(o).slice(8, -1).toLowerCase() == type;
             typeof o === type;
+}
+// Morphing Logic Implementations
+
+// check if all path are in line
+function isLine (sPath, ePath) {
+    var isLine = true,
+        checkLine = function (arr) {
+            var i = arr.length,
+                item;
+            while (i--) {
+                item = arr[i];
+                if (item[0] === 'C' && !item.lValue) {
+                    isLine = false;
+                }
+            }
+        };
+    checkLine(sPath);
+    checkLine(ePath);
+    return isLine;
+}
+
+// Convert all C to L value if all commands are line
+function pathToLine (arr) {
+    var i,
+        ii = arr.length;
+    for (i = 0; i < ii; ++i) {
+        arr[i] = arr[i].lValue || arr[i];
+    }
+}
+function arrToPath (arr) {
+    return arr.map(item => item.join(' ')).join('');
+}
+function pointDistance (x1, y1, x2, y2) {
+    var a = x1 - x2,
+        b = y1 - y2;
+    return Math.sqrt(a * a + b * b);
+}
+
+// Uncommon path normalizer
+function curveToLine (sPath, ePath) {
+    var dPath1,
+        dPath2,
+        i = 0,
+        j = 0,
+        item = {},
+        item2 = {},
+        pathLen1 = 0,
+        pathLen2 = 0,
+        divisions = 0,
+        p1,
+        p2,
+        round = Math.round;
+    // Convert array to string
+    p1 = arrToPath(sPath);
+    p2 = arrToPath(ePath);
+    // Creating path elements to use functions 'getTotalLength'
+    // and 'getPointAtLength'
+    dPath1 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    dPath1.setAttribute("d", p1);
+
+    dPath2 = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    dPath2.setAttribute("d", p2);
+
+    // Getting length of the paths
+    pathLen1 = dPath1.getTotalLength();
+    pathLen2 = dPath2.getTotalLength();
+
+    // Number of divisions will depend on larger path
+    divisions = (globalConfig.divisions || 0.1) * Math.max(pathLen1, pathLen2);
+    divisions = Math.ceil(divisions);
+
+    if (!divisions || !isFinite(divisions) || divisions < 10) {
+        divisions = 10;
+    }
+
+    // Modifying original array
+    sPath.length = 0;
+    ePath.length = 0;
+
+    for (i = 0; i <= divisions; ++i) {
+        item = dPath1.getPointAtLength((i / divisions) * pathLen1);
+        sPath.push([i ? "L" : "M",
+            round(item.x),
+            round(item.y)
+        ]);
+        item2 = dPath2.getPointAtLength((i / divisions) * pathLen2);
+        ePath.push([i ? "L" : "M",
+            round(item2.x),
+            round(item2.y)
+        ]);
+    }
+
+
+    return [sPath, ePath];
+}
+
+function morphPath (sPath, ePath) {
+    var fsPath,
+        fePath,
+        arr;
+
+    if (isLine(sPath, ePath)) {
+        pathToLine(sPath);
+        pathToLine(ePath);
+    } else {
+        curveToLine(sPath, ePath);
+    }
+
+
+
+    return [sPath, ePath];
 }
