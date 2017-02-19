@@ -508,7 +508,7 @@ function pointDistance (x1, y1, x2, y2) {
     return Math.sqrt(a * a + b * b);
 }
 
-// Uncommon path normalizer
+// Convert all curves to line commands
 function curveToLine (sPath, ePath) {
     var dPath1,
         dPath2,
@@ -570,15 +570,12 @@ function morphPath (sPath, ePath) {
     var fsPath,
         fePath,
         arr;
-
     if (isLine(sPath, ePath)) {
         pathToLine(sPath);
         pathToLine(ePath);
     } else {
         curveToLine(sPath, ePath);
     }
-
-
 
     return [sPath, ePath];
 }
